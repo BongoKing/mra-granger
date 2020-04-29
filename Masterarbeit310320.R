@@ -466,26 +466,30 @@ df_coded$googlecits <- ifelse(is.na(df_coded$googlecits), 0, df_coded$googlecits
 df_coded$repec <- ifelse(is.na(df_coded$repec), 0, df_coded$repec)
 df_coded$dsum <- ifelse(df_coded$hypothese_style == "sum", 1, 0)
 df_coded$dsingle <- ifelse(df_coded$hypothese_style == "single", 1, 0)
-
 df_coded$checker <- ifelse(df_coded$p_val >= df_coded$sign, 1, 0)
+df_coded$ranking <- (df_coded$sjr2018/sum(df_coded$sjr2018) + df_coded$ajg2018/sum(df_coded$ajg2018) + df_coded$googlecits/sum(df_coded$googlecits)
+                     + df_coded$repec/sum(df_coded$repec))/4
+df_coded$dranking <- ifelse(df_coded$ranking >= quantile(df_coded$ranking, 0.75), 1, 0)
+df_coded$dreturn <- ifelse(df_coded$y == "greturn" | df_coded$y == "price", 1, 0)
+df_coded$dvola <- ifelse(df_coded$y == "gvola", 1, 0)
 
-#table(unlist(df_coded$effect_typ))
-#table(unlist(df_coded$lev_dif))
+df_coded$doi <- ifelse(df_coded$x == "goi", 1, 0)
+df_coded$dpos <- ifelse(df_coded$x == "gpos_spec", 1, 0)
+df_coded$dvolume <- ifelse(df_coded$x == "gvolume", 1, 0)
+df_coded$dpvalcalc <- ifelse(df_coded$x == "gvolume", 1, 0)
 
 df_coded$ranking <- (df_coded$sjr2018/sum(df_coded$sjr2018) + df_coded$ajg2018/sum(df_coded$ajg2018) + df_coded$googlecits/sum(df_coded$googlecits)
                      + df_coded$repec/sum(df_coded$repec))/4
 df_coded$dranking <- ifelse(df_coded$ranking >= quantile(df_coded$ranking, 0.75), 1, 0)
 #samps_calc
-#studyid_calc_pval <- list(7, 18, 26, 34, 38, 47, 49) #Liste von Studien IDs von in Excel kalkulierten Daten
-#df_coded$dpvalcalc <- ifelse(df_coded$study_id %in% studyid_calc_pval, 1, 0)
-
+studyid_calc_pval <- list(7, 18, 26, 34, 38, 47, 49) #Liste von Studien IDs von in Excel kalkulierten Daten
+df_coded$dpvalcalc <- ifelse(df_coded$study_id %in% studyid_calc_pval, 1, 0)
 
 #distinct(select(filter(df_all, is.na(dpvalcalc)), dpvalcalc, study_id), study_id, .keep_all = TRUE)
-
 #str(df_all)
-
 #studyid_pval_0 <- list(3,6,7,9,10,11,13,14,15,16,17,19,20,21,22,23,24,37,45,46,48,49,50,52,53,54,56,58,59,66,69,70)
 #distinct(select(filter(df_all, is.na(p_val_calc)), p_val_calc, study_id), study_id, .keep_all = TRUE)
+
 
 #############################
 ###Spec & market & hedging###
@@ -805,7 +809,8 @@ dummy_list <- list("df", "m", "dmetal", "denergy", "dsoft",  "dfstat", "dchi2","
                    "dvarvec", "dadl","dcontemp", "dsum", "dsingle", "dzvar", "dlineargc", "dnonparagc", "dquantilegc", 
                    "dmultivariategc", "daicplus", "dbicplus", "dpretest", "dcftc", "dfuture", 
                    "daily", "weekly", "monthly", "quarterly", "avgyear", "pubyear", "d2007", "dinfluenced", "dtype", 
-                   "dranking", "samps_calc", "dpvalcalc")
+                   "dranking", "samps_calc", "dpvalcalc",
+                   "dreturn", "dvola", "doi", "dpos")
 
 
 for (i in dummy_list){
@@ -1252,564 +1257,307 @@ check_distribution(model)
 performance_mse(model)
 car::residualPlots(model)
 
-##################################
-###Testing for multicollin etc.###
-##################################
-
-#2. Advanced MRA - Lags + Average time + periode + commodity + z-var + var + ADL + standard GC + TY GC + DP GC + Journal rank + dif +  ###
-#dfuture
+#################################
+###Testing for correlationetc.###
+#################################
 dummy_list <- list("df", "m", "dmetal", "denergy", "dsoft",  "dfstat", "dchi2","dtstat",
-                   "dlev", "ddif", "dcontemp", "dsum", "dsingle",
-                   "dlin", "dlog", "dvarvec", "dadl", "dzvar", "dlineargc", "dnonparagc", "dquantilegc", 
-                   "dmultivariategc", "daic", "dbic", "daicplus", "dbicplus", "dpretest", "dcftc", 
-                   "daily", "weekly", "monthly", "quarterly", "avgyear", "pubyear", "dinfluenced", "dtype", 
-                   "dranking", "samps_calc", "dpvalcalc")
+                   "dlev", "ddif", "dlin", "dlog",
+                   "dvarvec", "dadl","dcontemp", "dsum", "dsingle", "dzvar", "dlineargc", "dnonparagc", "dquantilegc", 
+                   "dmultivariategc", "daicplus", "dbicplus", "dpretest", "dcftc", "dfuture", 
+                   "daily", "weekly", "monthly", "quarterly", "avgyear", "pubyear", "d2007", "dinfluenced", "dtype", 
+                   "dranking", "samps_calc", "dpvalcalc",
+                   "dreturn", "dvola", "doi", "dpos", "dvolume")
+
 #Ohne Base
-dummy_list <- list("df", "m", "dmetal", "denergy", "dchi2","dtstat",
-                   "ddif", "dcontemp", "dsum", 
-                   "dlog", "dvarvec", "dzvar", "dnonparagc", "dquantilegc", 
-                   "dmultivariategc", "daic", "dbic", "daicplus", "dbicplus", "dpretest", "dcftc", 
-                   "daily", "monthly", "quarterly", "avgyear", "pubyear", "dinfluenced", "dtype", 
-                   "dranking", "samps_calc", "dpvalcalc")
+dummy_list <- list("df", "m", "dmetal", "dsoft","dchi2","dtstat",
+                   "ddif", "dlog",
+                   "dvarvec", "dcontemp", "dsum", "dzvar", "dnonparagc", "dquantilegc", 
+                   "dmultivariategc", "daicplus", "dbicplus", "dpretest", "dcftc",  
+                   "daily", "monthly", "quarterly", "avgyear", "pubyear", "d2007", "dinfluenced", "dtype", 
+                   "dranking", "samps_calc", "dpvalcalc",
+                   "dreturn", "dvola", "doi", "dpos", "dvolume")
+
+
 #dfuture
-excluded_list <- list("dsoft", "dlev", "dsingle", "dadl", "dlineargc", "weekly", "m", "dfstat",
-                      "dpvalcalc", "dranking", "avgyear", "daic", "dquantilegc", "samps_calc", "daily", "avgyear", "dlin")
-
-#Basegroup "dsoft", "dlev", "dsingle", "dadl", "dlineargc", "weekly",  "dfstat",  "dlin", "m"
-
-#Reincluded - m, weekly, dpvalcalc, dranking, avgyear, daic, dquantilegc, samps_calc,"daic", "dquantilegc", "samps_calc", "daily", "avgyear", 
-
+#excluded_list <- list("denergy", "dlev", "dlin", "dadl", "dsingle", "dlineargc", "dfstat", "weekly")
 
 df_corr <- df_s2m[ , unlist(dummy_list)]
 num.cols <- sapply(df_corr, is.numeric)
 cor.data <- cor(df_corr[,num.cols])
 cor.data
-
-
-df_corr <- df_s2m[ , unlist(excluded_list)]
-num.cols <- sapply(df_corr, is.numeric)
-cor.data <- cor(df_corr[,num.cols])
-cor.data
-
 summary(df_corr)
+
+#df_corr <- df_s2m[ , unlist(excluded_list)]
+#num.cols <- sapply(df_corr, is.numeric)
+#cor.data <- cor(df_corr[,num.cols])
+#cor.data
 summary(cor.data)
 
-#####################################
-###4 multiple MRA model - 190320###
-#####################################
-#model_s2m_4_t_1 <- lm(tprobit ~ sqrt(df) + m + dmetal + denergy + dchi2 + dtstat + 
-#                        ddif + dsum + dlog + dvarvec + dzvar +
-#                        dnonparagc + dmultivariategc + daicplus + dbicplus +
-#                        dpretest + dcftc + monthly + quarterly + d2007 +
-#                        dinfluenced + dranking, data = df_s2m_t)
-#model_s2m_4_t_2 <- lm(tprobit ~ sqrt(df) + m + dmetal + denergy + dchi2 + dtstat +
-#                        ddif + dsum + dlog + dvarvec + dzvar +
-#                        dnonparagc + dmultivariategc + daicplus + dbicplus +
-#                        dpretest + dcftc + monthly + quarterly + d2007 +
-#                        dinfluenced + dranking, data = df_s2m_t, weights = sqrt(df)) #WLS sqrt(DF)
-#model_s2m_4_t_3 <- lm(tprobit ~ sqrt(df) + m + dmetal + denergy + dchi2 + dtstat +
-#                        ddif + dsum + dlog + dvarvec + dzvar +
-#                        dnonparagc + dmultivariategc + daicplus + dbicplus +
-#                        dpretest + dcftc + monthly + quarterly + d2007 +
-#                        dinfluenced + dranking, data = df_s2m_t, weights = 1/studyobs) #WLS 1/studyobs
-#model_s2m_4_t_4 <- lm(tprobit ~ sqrt(df) + m + dmetal + denergy + dchi2 + dtstat + 
-#                        ddif + dsum + dlog + dvarvec + dzvar +
-#                        dnonparagc + dmultivariategc + daicplus + dbicplus +
-#                        dpretest + dcftc + monthly + quarterly + d2007 +
-#                        dinfluenced + dranking, data = df_s2m_t, weights = studyquali) #WLS studyquali
-#model_s2m_4_t_5 <- lm(tprobit ~ sqrt(df) + m + dmetal + denergy + dchi2 + dtstat +
-#                        ddif + dsum + dlog + dvarvec + dzvar +
-#                        dnonparagc + dmultivariategc + daicplus + dbicplus +
-#                        dpretest + dcftc + monthly + quarterly + d2007 +
-#                        dinfluenced + dranking, data = df_s2m_t, weights = 1/calc_var) #WLS 1/variance
-##check_collinearity(model_s2m_4_t_4)
-#model_s2m_4_t2_1 <- lm(t2probit ~ sqrt(df) + m + dmetal + denergy + dchi2 + dtstat +
-#                         ddif + dsum + dlog + dvarvec + dzvar +
-#                         dnonparagc + dmultivariategc + daicplus + dbicplus +
-#                         dpretest + dcftc + monthly + quarterly + d2007 +
-#                         dinfluenced + dranking, data = df_s2m_t2)
-#model_s2m_4_t2_2 <- lm(t2probit ~ sqrt(df) + m + dmetal + denergy + dchi2 + dtstat +
-#                         ddif + dsum + dlog + dvarvec + dzvar +
-#                         dnonparagc + dmultivariategc + daicplus + dbicplus +
-#                         dpretest + dcftc + monthly + quarterly + d2007 +
-#                         dinfluenced + dranking, data = df_s2m_t2, weights = sqrt(df)) #WLS sqrt(DF)
-#model_s2m_4_t2_3 <- lm(t2probit ~ sqrt(df) + m + dmetal + denergy + dchi2 + dtstat +
-#                         ddif + dsum + dlog + dvarvec + dzvar +
-#                         dnonparagc + dmultivariategc + daicplus + dbicplus +
-#                         dpretest + dcftc + monthly + quarterly + d2007 +
-#                         dinfluenced + dranking, data = df_s2m_t2, weights = 1/studyobs) #WLS 1/studyobs
-
-#model_s2m_4_t2_test <- lm(t2probit ~ sqrt(df) + m + commodity_name + effect_typ +
-#                         ddif + dlog + dvarvec + dcontemp + dsum + dzvar + func_typ +
-#                        daicplus + dbicplus + dpretest + dcftc + monthly + quarterly + d2007 +
-#                         dinfluenced + dranking + samps_calc + dpvalcalc, data = df_s2m_t2, weights = 1/studyobs) #WLS 1/studyobs
-#model_s2m_4_t2_4 <- lm(t2probit ~ sqrt(df) + m + dmetal + denergy + dchi2 + dtstat +
-#                         ddif + dsum + dlog + dvarvec + dzvar +
-#                         dnonparagc + dmultivariategc + daicplus + dbicplus +
-#                         dpretest + dcftc + monthly + quarterly + d2007 +
-#                         dinfluenced + dranking, data = df_s2m_t2, weights = studyquali) #WLS studyquali
-#model_s2m_4_t2_5 <- lm(t2probit ~ sqrt(df) + m + dmetal + denergy + dchi2 + dtstat +
-#                         ddif + dsum + dlog + dvarvec + dzvar +
-#                         dnonparagc + dmultivariategc + daicplus + dbicplus +
-#                         dpretest + dcftc + monthly + quarterly + d2007 +
-#                         dinfluenced + dranking, data = df_s2m_t2, weights = 1/calc_var) #WLS 1/variance
-##Testing
-#Set model for analysis
-#model4_1_list <- list(model_s2m_4_t_1, model_s2m_4_t_2, model_s2m_4_t_3, model_s2m_4_t_4, model_s2m_4_t_5)
-#model4_2_list <- list(model_s2m_4_t2_1, model_s2m_4_t2_2, model_s2m_4_t2_3, model_s2m_4_t2_4, model_s2m_4_t2_5)
-
-#for (model in model4_1_list){
-#  print(coeftest(model, cluster.vcov(model, cbind(df_s2m_t$study_id, df_s2m_t$studyobs)))) # Clustered Standard error  
-#  #print(coeftest(model, vcov = vcovHC(model, type = "HC5")))
-#}
-#for (model in model4_2_list){
-#  print(coeftest(model, cluster.vcov(model, cbind(df_s2m_t2$study_id, df_s2m_t2$studyobs)))) # Clustered Standard error  
-#  #print(coeftest(model, vcov = vcovHC(model, type = "HC5")))
-#}
-
-
-#model = model_s2m_4_t2_3
-#Testing 
-#print(lmtest::bptest(model))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
-#check_autocorrelation(model)
-#check_outliers(model)
-#check_normality(i)
-#check_heteroscedasticity(model)
-#check_collinearity(model)
-
-######################################
-###Experimental leverage robust MRA###
-######################################
-for (model in model4_1_list){
-  print(coeftest(model, cluster.vcov(model, cbind(df_s2m_t$study_id, df_s2m_t$studyobs)), leverage = 3)) # Clustered Standard error  
-}
-for (model in model4_2_list){
-  print(coeftest(model, cluster.vcov(model, cbind(df_s2m_t2$study_id, df_s2m_t2$studyobs)), leverage = 3)) # Clustered Standard error  
-}
-for (model in model4_1_list){
-  print(coeftest(model, cluster.vcov(model, cbind(df_s2m_t$study_id, df_s2m_t$studyobs)), leverage = 3)) # Clustered Standard error  
-}
-for (model in model4_2_list){
-  print(coeftest(model, cluster.vcov(model, cbind(df_s2m_t2$study_id, df_s2m_t2$studyobs)), leverage = 3)) # Clustered Standard error  
-}
-
-###########################################
-###GtoS Approach - non iterativ - 240320###
-###########################################
-model_reduced_A5 <- lm(tprobit ~ sqrt(df) + dmetal + denergy + dlog + dnonparagc + monthly + quarterly + d2007
-                        , data = df_s2m_t, weights = 1/studyobs) #WLS 1/studyobs
-model_reduced_B5 <- lm(t2probit ~ m + dmetal + denergy + dlog + dpretest
-                       , data = df_s2m_t2, weights = studyquali) #WLS studyquali
-
-coeftest(model_reduced_A5, cluster.vcov(model_reduced_A5, cbind(df_s2m_t$study_id, df_s2m_t$studyobs)))
-coeftest(model_reduced_B5, cluster.vcov(model_reduced_B5, cbind(df_s2m_t2$study_id, df_s2m_t2$studyobs)))
-
-
-
-#################################
-###Predict Best practice model###
-#################################
-#df_Predict contains best practice Values for wich the model shall be predicted
-#Reduced
-#df_predict <- data.frame(sqrt(), m = 3, dmetal = c(1, 0), dsum = 1, dlog = 1)
-#predict(model_reduced_B, df_predict)
-#df_predict <- data.frame(m = 3, dmetal = 0, dsum = 1, dlog = 1)
-#predict(model_reduced_B2, df_predict)
-#Full model
-df_predict_1 <- data.frame(dmetal = 0, denergy = 1, dvarvec = 0, dranking = 1, d2007 = 0,  dchi2 = 0, dtstat = 0, ddif = 0, dsum = 0, dlog = 0, dzvar = 0, 
-                         dnonparagc = 0, dmultivariategc = 0, daicplus = 0, dbicplus = 0, dpretest = 1, dcftc = 1, monthly = 0, quarterly =0, 
-                         dinfluenced = 0, dlog = 1, df=800, m = 3)
-df_predict_2 <- data.frame(dmetal = 0, denergy = 1, dvarvec = 0, dranking = 1, d2007 = 1,  dchi2 = 0, dtstat = 0, ddif = 0, dsum = 0, dlog = 0, dzvar = 0, 
-                           dnonparagc = 0, dmultivariategc = 0, daicplus = 0, dbicplus = 0, dpretest = 1, dcftc = 1, monthly = 0, quarterly =0, 
-                           dinfluenced = 0, dlog = 1, df=800, m = 3)
-df_predict_3 <- data.frame(dmetal = 0, denergy = 1, dvarvec = 0, dranking = 0, d2007 = 0,  dchi2 = 0, dtstat = 0, ddif = 0, dsum = 0, dlog = 0, dzvar = 0, 
-                           dnonparagc = 0, dmultivariategc = 0, daicplus = 0, dbicplus = 0, dpretest = 1, dcftc = 1, monthly = 0, quarterly =0, 
-                           dinfluenced = 0, dlog = 1, df=800, m = 3)
-df_predict_4 <- data.frame(dmetal = 0, denergy = 1, dvarvec = 0, dranking = 0, d2007 = 1,  dchi2 = 0, dtstat = 0, ddif = 0, dsum = 0, dlog = 0, dzvar = 0, 
-                           dnonparagc = 0, dmultivariategc = 0, daicplus = 0, dbicplus = 0, dpretest = 1, dcftc = 1, monthly = 0, quarterly =0, 
-                           dinfluenced = 0, dlog = 1, df=800, m = 3)
-df_predict_5 <- data.frame(dmetal = 0, denergy = 1, dvarvec = 1, dranking = 1, d2007 = 0,  dchi2 = 0, dtstat = 0, ddif = 0, dsum = 0, dlog = 0, dzvar = 0, 
-                           dnonparagc = 0, dmultivariategc = 0, daicplus = 0, dbicplus = 0, dpretest = 1, dcftc = 1, monthly = 0, quarterly =0, 
-                           dinfluenced = 0, dlog = 1, df=800, m = 3)
-df_predict_6 <- data.frame(dmetal = 0, denergy = 1, dvarvec = 1, dranking = 1, d2007 = 1,  dchi2 = 0, dtstat = 0, ddif = 0, dsum = 0, dlog = 0, dzvar = 0, 
-                           dnonparagc = 0, dmultivariategc = 0, daicplus = 0, dbicplus = 0, dpretest = 1, dcftc = 1, monthly = 0, quarterly =0, 
-                           dinfluenced = 0, dlog = 1, df=800, m = 3)
-df_predict_7 <- data.frame(dmetal = 0, denergy = 1, dvarvec = 1, dranking = 0, d2007 = 0,  dchi2 = 0, dtstat = 0, ddif = 0, dsum = 0, dlog = 0, dzvar = 0, 
-                           dnonparagc = 0, dmultivariategc = 0, daicplus = 0, dbicplus = 0, dpretest = 1, dcftc = 1, monthly = 0, quarterly =0, 
-                           dinfluenced = 0, dlog = 1, df=800, m = 3)
-df_predict_8 <- data.frame(dmetal = 0, denergy = 1, dvarvec = 1, dranking = 0, d2007 = 1,  dchi2 = 0, dtstat = 0, ddif = 0, dsum = 0, dlog = 0, dzvar = 0, 
-                           dnonparagc = 0, dmultivariategc = 0, daicplus = 0, dbicplus = 0, dpretest = 1, dcftc = 1, monthly = 0, quarterly =0, 
-                           dinfluenced = 0, dlog = 1, df=800, m = 3)
-
-#model_s2m_4_t2_3 <- lm(t2probit ~ sqrt(df) + m + dmetal + denergy + dchi2 + dtstat + ddif + dsum + dlog + dvarvec + dzvar + dnonparagc + 
-#                        dmultivariategc + daicplus + dbicplus + dpretest + dcftc + monthly + quarterly + d2007 + dinfluenced + 
-#                        dranking, data = df_s2m_t2, weights = 1/studyobs) #WLS 1/studyobs
-summary(df_s2m$df)
-summary(df_s2m$m)
-#Set model for analysis
-predict_list <- list(df_predict_1, df_predict_2, df_predict_3, df_predict_4, df_predict_5, df_predict_6, df_predict_7, df_predict_8)
-
-for (predict in predict_list){
-  print(pnorm(-predict(model_s2m_4_t2_3, predict)))
-  #print(coeftest(model, cluster.vcov(model, cbind(df_s2m_t$study_id, df_s2m_t$studyobs)))) # Clustered Standard error  
-}
-
-#newdata<-data.frame(S.F.Ratio=33, PhD=76, Expend=11000)
-#predict(TrainingModel, newdata)
-
-df_predict_7 <- data.frame(dmetal = 0, denergy = 1, dvarvec = 1, dranking = 0, d2007 = 0,  dchi2 = 0, dtstat = 0, ddif = 0, dsum = 0, dlog = 0, dzvar = 0, 
-                           dnonparagc = 0, dmultivariategc = 0, daicplus = 0, dbicplus = 0, dpretest = 1, dcftc = 1, monthly = 0, quarterly =0, 
-                           dinfluenced = 0, dlog = 1, df=800, m = 3)
-print(pnorm(-predict(model_s2m_4_t2_3, df_predict_7)))
-
-#####################################
-###5 multiple MRA model - 250320###
-#####################################
-model_s2m_5_t_1 <- lm(tprobit ~ sqrt(df) + m + commodity_name + effect_typ + ddif + dlog + dvarvec + 
-                        dcontemp + dsum + dzvar + func_typ + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + quarterly + d2007 + dinfluenced + dranking + samps_calc + dpvalcalc
-                      , data = df_s2m_t)
-model_s2m_5_t_2 <- lm(tprobit ~ sqrt(df) + m + commodity_name + effect_typ + ddif + dlog + dvarvec + 
-                        dcontemp + dsum + dzvar + func_typ + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + quarterly + d2007 + dinfluenced + dranking + samps_calc + dpvalcalc
-                      , data = df_s2m_t, weights = sqrt(df)) #WLS1 sqrt(DF)) 
-model_s2m_5_t_3 <- lm(tprobit ~ sqrt(df) + m + commodity_name + effect_typ + ddif + dlog + dvarvec + 
-                        dcontemp + dsum + dzvar + func_typ + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + quarterly + d2007 + dinfluenced + dranking + samps_calc + dpvalcalc
-                      , data = df_s2m_t, weights = 1/studyobs) #WLS2 1/studyobs
-model_s2m_5_t_4 <- lm(tprobit ~ sqrt(df) + m + commodity_name + effect_typ + ddif + dlog + dvarvec + 
-                        dcontemp + dsum + dzvar + func_typ + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + quarterly + d2007 + dinfluenced + dranking + samps_calc + dpvalcalc
-                      , data = df_s2m_t, weights = studyquali) #WLS3 studyquali
-model_s2m_5_t_5 <- lm(tprobit ~ sqrt(df) + m + commodity_name + effect_typ + ddif + dlog + dvarvec + 
-                        dcontemp + dsum + dzvar + func_typ + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + quarterly + d2007 + dinfluenced + dranking + samps_calc + dpvalcalc
-                      , data = df_s2m_t, weights = 1/calc_var) #WLS4 1/variance
-model_s2m_5_t2_1 <- lm(t2probit ~ sqrt(df) + m + commodity_name + effect_typ + ddif + dlog + dvarvec + 
-                        dcontemp + dsum + dzvar + func_typ + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + quarterly + d2007 + dinfluenced + dranking + samps_calc + dpvalcalc
-                      , data = df_s2m_t2)
-model_s2m_5_t2_2 <- lm(t2probit ~ sqrt(df) + m + commodity_name + effect_typ + ddif + dlog + dvarvec + 
-                        dcontemp + dsum + dzvar + func_typ + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + quarterly + d2007 + dinfluenced + dranking + samps_calc + dpvalcalc
-                      , data = df_s2m_t2, weights = sqrt(df)) #WLS1 sqrt(DF)) 
-model_s2m_5_t2_3 <- lm(t2probit ~ sqrt(df) + m + commodity_name + effect_typ + ddif + dlog + dvarvec + 
-                        dcontemp + dsum + dzvar + func_typ + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + quarterly + d2007 + dinfluenced + dranking + samps_calc + dpvalcalc
-                      , data = df_s2m_t2, weights = 1/studyobs) #WLS2 1/studyobs
-model_s2m_5_t2_4 <- lm(t2probit ~ sqrt(df) + m + commodity_name + effect_typ + ddif + dlog + dvarvec + 
-                        dcontemp + dsum + dzvar + func_typ + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + quarterly + d2007 + dinfluenced + dranking + samps_calc + dpvalcalc
-                      , data = df_s2m_t2, weights = studyquali) #WLS3 studyquali
-model_s2m_5_t2_5 <- lm(t2probit ~ sqrt(df) + m + commodity_name + effect_typ + ddif + dlog + dvarvec + 
-                        dcontemp + dsum + dzvar + func_typ + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + quarterly + d2007 + dinfluenced + dranking + samps_calc + dpvalcalc
-                      , data = df_s2m_t2, weights = 1/calc_var) #WLS4 1/variance
-
-#Testing
-#Set model for analysis
-model5_1_list <- list(model_s2m_5_t_1, model_s2m_5_t_2, model_s2m_5_t_3, model_s2m_5_t_4, model_s2m_5_t_5)
-model5_2_list <- list(model_s2m_5_t2_1, model_s2m_5_t2_2, model_s2m_5_t2_3, model_s2m_5_t2_4, model_s2m_5_t2_5)
-
-for (model in model5_1_list){
-  print(coeftest(model, cluster.vcov(model, cbind(df_s2m_t$study_id, df_s2m_t$studyobs)))) # Clustered Standard error  
-  #print(coeftest(model, vcov = vcovHC(model, type = "HC5")))
-}
-for (model in model5_2_list){
-  print(coeftest(model, cluster.vcov(model, cbind(df_s2m_t2$study_id, df_s2m_t2$studyobs)))) # Clustered Standard error  
-  #print(coeftest(model, vcov = vcovHC(model, type = "HC5")))
-}
-
-
-model = model_s2m_5_t2_3
-#Testing 
-print(lmtest::bptest(model))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
-check_autocorrelation(model)
-check_outliers(model)
-check_normality(i)
-check_heteroscedasticity(model)
-check_collinearity(model)
-
-###################################################
-###GtoS Approach - MRA 5 - non iterativ - 250320###
-###################################################
-model_reduced_A5 <- lm(tprobit ~ sqrt(df) + m + dmetal + dsoft + denergy + dlog +  
-                        dcontemp + func_typ + dbicplus + 
-                        monthly + quarterly + d2007
-                      , data = df_s2m_t, weights = 1/studyobs) #WLS2 1/studyobs
-
-model_reduced_B5 <- lm(t2probit ~ sqrt(df) + m + dmetal + dsoft + denergy +
-                         dcontemp + dquantilegc + dcftc + 
-                         monthly + quarterly + d2007
-                       , data = df_s2m_t2, weights = 1/studyobs) #WLS2 1/studyobs
-
-check_collinearity(model_reduced_A5)
-check_collinearity(model_reduced_B5)
-coeftest(model_reduced_A5, cluster.vcov(model_reduced_A5, cbind(df_s2m_t$study_id, df_s2m_t$studyobs)))
-coeftest(model_reduced_B5, cluster.vcov(model_reduced_B5, cbind(df_s2m_t2$study_id, df_s2m_t2$studyobs)))
-
-
-
-##########################################
-###Predict Best practice model - 250320###
-##########################################
-#df_Predict contains best practice Values for wich the model shall be predicted
-model_s2m_5_t2_3 <- lm(t2probit ~ sqrt(df) + m + commodity_name + effect_typ + ddif + dlog + dvarvec + 
-                         dcontemp + dsum + dzvar + func_typ + daicplus + dbicplus + dpretest + dcftc + 
-                         monthly + quarterly + d2007 + dinfluenced + dranking + samps_calc + dpvalcalc
-                       , data = df_s2m_t2, weights = 1/studyobs) #WLS2 1/studyobs
-
-
-#Full B subsample
-df_predict_1 <- data.frame(df = 0, m = 3, commodity_name = "gsoft", effect_typ = "f-statistic",
-                           ddif = 1, dlog = 0, dvarvec = 1, 
-                           dcontemp = 0, dsum = 0, dzvar = 0, func_typ = "glinear", daicplus = 0, dbicplus = 0.5, dpretest = 0.61, dcftc = 0.54, 
-                           monthly = 0, quarterly =0, d2007 = 1, dinfluenced = 0.53, dranking = 0, samps_calc = 0, dpvalcalc = 0)
-df_predict_1 <- data.frame(df = 0, m = 3, commodity_name = "genergy", effect_typ = "f-statistic",
-                           ddif = 1, dlog = 0, dvarvec = 1, 
-                           dcontemp = 0, dsum = 0, dzvar = 0, func_typ = "glinear", daicplus = 0, dbicplus = 0.5, dpretest = 0.61, dcftc = 0.54, 
-                           monthly = 0, quarterly =0, d2007 = 1, dinfluenced = 0.53, dranking = 0, samps_calc = 0, dpvalcalc = 0)
-df_predict_1 <- data.frame(df = 0, m = 3, commodity_name = "gmetal", effect_typ = "f-statistic",
-                           ddif = 1, dlog = 0, dvarvec = 1, 
-                           dcontemp = 0, dsum = 0, dzvar = 0, func_typ = "glinear", daicplus = 0, dbicplus = 0.5, dpretest = 0.61, dcftc = 0.54, 
-                           monthly = 0, quarterly =0, d2007 = 1, dinfluenced = 0.53, dranking = 0, samps_calc = 0, dpvalcalc = 0)
-
-pnorm(-predict(model_s2m_5_t_3, df_predict_1))
-pnorm(-predict(model_s2m_5_t2_3, df_predict_1))
-
-###################################
-###6 multiple MRA model - 260320 - reduced because of collinearity: contemp, dsum, quarterly, dmultivariategc, dic###
-###################################
+##################################
+###Testing for multicollin etc.###
+##################################
+dummy_list <- list("df", "m", "dmetal", "dsoft","dchi2","dtstat",
+                   "ddif", "dlog",
+                   "dvarvec", "dcontemp", "dsum", "dzvar", "dnonparagc", "dquantilegc", 
+                   "dmultivariategc", "daicplus", "dbicplus", "dpretest", "dcftc",  
+                   "daily", "monthly", "quarterly", "avgyear", "pubyear", "d2007", "dinfluenced", "dtype", 
+                   "dranking", "samps_calc", "dpvalcalc",
+                   "dreturn", "dvola", "doi", "dpos", "dvolume")
+table(unlist(df_coded$dmultivariategc))
+cor.data
 #Setup the model
-model_s2m_6_t_1 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + aicplus + bicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking
-                      , data = df_s2m_t)
-model_s2m_6_t2_1 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                         dzvar + dnonparagc + dquantilegc + aicplus + bicplus + dpretest + dcftc + 
-                         monthly + d2007 + dinfluenced + dranking
-                       , data = df_s2m_t2)
-
+table(unlist(df_coded$dmultivariategc))
+model_s2m_6_t_1 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                        dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                        dvola + doi + dvolume, data = df_s2m_t)
 check_collinearity(model_s2m_6_t_1)
+
+
+model_s2m_6_t2_1 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                         dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                         dvola + doi + dvolume, data = df_s2m_t2)
+
 check_collinearity(model_s2m_6_t2_1)
 
-#Calculate the model 6
 
-model_s2m_6_t_1 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking  
-                      , data = df_s2m_t)
+###########################################################################################################################################
+
+
+
+###################################
+###6 multiple MRA model - 240420 - reduced because of collinearity: contemp, quarterly, dmultivariategc, dquantilegc, dinfluenced, dbicplus, dpretest###
+###################################
+model_s2m_6_t_1 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                        dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                        dvola + doi + dvolume, data = df_s2m_t)
 HighLeverage <- cooks.distance(model_s2m_6_t_1) > (4/nrow(df_s2m))
 LargeResiduals <- rstudent(model_s2m_6_t_1) > 3
 df_s2m_m6t_1 <- df_s2m[!HighLeverage & !LargeResiduals,]
-fmodel_s2m_6_t_1 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking 
-                      , data = df_s2m_m6t_1)
+fmodel_s2m_6_t_1 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                          dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                         dvola + doi + dvolume, data = df_s2m_m6t_1)
 print(coeftest(fmodel_s2m_6_t_1, cluster.vcov(fmodel_s2m_6_t_1, cbind(df_s2m_m6t_1$study_id, df_s2m_m6t_1$studyobs)))) # Clustered Standard error
+print(coeftest(fmodel_s2m_6_t_1, cluster.vcov(fmodel_s2m_6_t_1, cbind(df_s2m_m6t_1$study_id, df_s2m_m6t_1$studyobs)), leverage = 3)) # Experimenal clustered Standard error  
 print(lmtest::bptest(fmodel_s2m_6_t_1))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
+check_collinearity(fmodel_s2m_6_t_1)
 
-model_s2m_6_t_2 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking 
-                      , data = df_s2m_t, weights = sqrt(df)) #WLS1 sqrt(DF)) 
+model_s2m_6_t_2 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                        dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                        dvola + doi + dvolume, data = df_s2m_t, weights = sqrt(df)) #WLS1 sqrt(DF)) 
 HighLeverage <- cooks.distance(model_s2m_6_t_2) > (4/nrow(df_s2m))
 LargeResiduals <- rstudent(model_s2m_6_t_2) > 3
 df_s2m_m6t_2 <- df_s2m[!HighLeverage & !LargeResiduals,]
-fmodel_s2m_6_t_2 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking 
-                      , data = df_s2m_m6t_2, weights = sqrt(df)) #WLS1 sqrt(DF)) 
+fmodel_s2m_6_t_2 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                         dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                         dvola + doi + dvolume, data = df_s2m_m6t_2, weights = sqrt(df)) #WLS1 sqrt(DF)) 
 print(coeftest(fmodel_s2m_6_t_2, cluster.vcov(fmodel_s2m_6_t_2, cbind(df_s2m_m6t_2$study_id, df_s2m_m6t_2$studyobs)))) # Clustered Standard error
+print(coeftest(fmodel_s2m_6_t_2, cluster.vcov(fmodel_s2m_6_t_2, cbind(df_s2m_m6t_2$study_id, df_s2m_m6t_2$studyobs)), leverage = 3)) # Experimenal clustered Standard error  
 print(lmtest::bptest(fmodel_s2m_6_t_2))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
+check_collinearity(fmodel_s2m_6_t_2)
 
-model_s2m_6_t_3 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking 
-                      , data = df_s2m_t, weights = 1/studyobs) #WLS2 1/studyobs
+model_s2m_6_t_3 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                        dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                        dvola + doi + dvolume, data = df_s2m_t, weights = 1/studyobs) #WLS2 1/studyobs
 HighLeverage <- cooks.distance(model_s2m_6_t_3) > (4/nrow(df_s2m))
 LargeResiduals <- rstudent(model_s2m_6_t_3) > 3
 df_s2m_m6t_3 <- df_s2m[!HighLeverage & !LargeResiduals,]
-fmodel_s2m_6_t_3 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking 
-                      , data = df_s2m_m6t_3, weights = 1/studyobs) #WLS2 1/studyobs
+fmodel_s2m_6_t_3 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                         dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                         dvola + doi + dvolume, data = df_s2m_m6t_3, weights = 1/studyobs) #WLS2 1/studyobs
 print(coeftest(fmodel_s2m_6_t_3, cluster.vcov(fmodel_s2m_6_t_3, cbind(df_s2m_m6t_3$study_id, df_s2m_m6t_3$studyobs)))) # Clustered Standard error
+print(coeftest(fmodel_s2m_6_t_3, cluster.vcov(fmodel_s2m_6_t_3, cbind(df_s2m_m6t_3$study_id, df_s2m_m6t_3$studyobs)), leverage = 3)) # Experimenal clustered Standard error  
 print(lmtest::bptest(fmodel_s2m_6_t_3))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
+check_collinearity(fmodel_s2m_6_t_3)
 
-model_s2m_6_t_4 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking
-                      , data = df_s2m_t, weights = studyquali) #WLS3 studyquali
+model_s2m_6_t_4 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                        dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                        dvola + doi + dvolume, data = df_s2m_t, weights = studyquali) #WLS3 studyquali
 HighLeverage <- cooks.distance(model_s2m_6_t_4) > (4/nrow(df_s2m))
 LargeResiduals <- rstudent(model_s2m_6_t_4) > 3
 df_s2m_m6t_4 <- df_s2m[!HighLeverage & !LargeResiduals,]
-fmodel_s2m_6_t_4 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking
-                      , data = df_s2m_m6t_4, weights = studyquali) #WLS3 studyquali
+fmodel_s2m_6_t_4 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                         dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                         dvola + doi + dvolume, data = df_s2m_m6t_4, weights = studyquali) #WLS3 studyquali
 print(coeftest(fmodel_s2m_6_t_4, cluster.vcov(fmodel_s2m_6_t_4, cbind(df_s2m_m6t_4$study_id, df_s2m_m6t_4$studyobs)))) # Clustered Standard error
+print(coeftest(fmodel_s2m_6_t_4, cluster.vcov(fmodel_s2m_6_t_4, cbind(df_s2m_m6t_4$study_id, df_s2m_m6t_4$studyobs)), leverage = 3)) # Experimenal clustered Standard error  
 print(lmtest::bptest(fmodel_s2m_6_t_4))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
+check_collinearity(fmodel_s2m_6_t_4)
 
-model_s2m_6_t_5 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking
-                      , data = df_s2m_t, weights = 1/calc_var) #WLS4 1/variance
+model_s2m_6_t_5 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                        dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                        dvola + doi + dvolume, data = df_s2m_t, weights = 1/calc_var) #WLS4 1/variance
 HighLeverage <- cooks.distance(model_s2m_6_t_5) > (4/nrow(df_s2m))
 LargeResiduals <- rstudent(model_s2m_6_t_5) > 3
 df_s2m_m6t_5 <- df_s2m[!HighLeverage & !LargeResiduals,]
-fmodel_s2m_6_t_5 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking
-                      , data = df_s2m_m6t_5, weights = 1/calc_var) #WLS4 1/variance
+fmodel_s2m_6_t_5 <- lm(tprobit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                         dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                         dvola + doi + dvolume, data = df_s2m_m6t_5, weights = 1/calc_var) #WLS4 1/variance
 print(coeftest(fmodel_s2m_6_t_5, cluster.vcov(fmodel_s2m_6_t_5, cbind(df_s2m_m6t_5$study_id, df_s2m_m6t_5$studyobs)))) # Clustered Standard error
+print(coeftest(fmodel_s2m_6_t_5, cluster.vcov(fmodel_s2m_6_t_5, cbind(df_s2m_m6t_5$study_id, df_s2m_m6t_5$studyobs)), leverage = 3)) # Experimenal clustered Standard error  
 print(lmtest::bptest(fmodel_s2m_6_t_5))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
+check_collinearity(fmodel_s2m_6_t_5)
 ##############
 ###Model t2###
 ##############
-model_s2m_6_t2_1 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking
-                      , data = df_s2m_t2)
+model_s2m_6_t2_1 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                         dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                         dvola + doi + dvolume, data = df_s2m_t2)
 HighLeverage <- cooks.distance(model_s2m_6_t2_1) > (4/nrow(df_s2m))
 LargeResiduals <- rstudent(model_s2m_6_t2_1) > 3
 df_s2m_m6t2_1 <- df_s2m[!HighLeverage & !LargeResiduals,]
-fmodel_s2m_6_t2_1 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                         dcontemp + dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                         monthly + d2007 + dinfluenced + dranking
-                       , data = df_s2m_m6t2_1)
+fmodel_s2m_6_t2_1 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                          dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                          dvola + doi + dvolume, data = df_s2m_m6t2_1)
 print(coeftest(fmodel_s2m_6_t2_1, cluster.vcov(fmodel_s2m_6_t2_1, cbind(df_s2m_m6t2_1$study_id, df_s2m_m6t2_1$studyobs)))) # Clustered Standard error
+print(coeftest(fmodel_s2m_6_t2_1, cluster.vcov(fmodel_s2m_6_t2_1, cbind(df_s2m_m6t2_1$study_id, df_s2m_m6t2_1$studyobs)), leverage = 3)) # Experimenal clustered Standard error  
 print(lmtest::bptest(fmodel_s2m_6_t2_1))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
+check_collinearity(fmodel_s2m_6_t2_1)
 
-model_s2m_6_t2_2 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking
-                      , data = df_s2m_t2, weights = sqrt(df)) #WLS1 sqrt(DF)) 
+model_s2m_6_t2_2 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                         dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                         dvola + doi + dvolume, data = df_s2m_t2, weights = sqrt(df)) #WLS1 sqrt(DF)) 
 HighLeverage <- cooks.distance(model_s2m_6_t2_2) > (4/nrow(df_s2m))
 LargeResiduals <- rstudent(model_s2m_6_t2_2) > 3
 df_s2m_m6t2_2 <- df_s2m[!HighLeverage & !LargeResiduals,]
-fmodel_s2m_6_t2_2 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                         dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                         monthly + d2007 + dinfluenced + dranking
-                       , data = df_s2m_m6t2_2, weights = sqrt(df)) #WLS1 sqrt(DF)) 
+fmodel_s2m_6_t2_2 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                          dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                          dvola + doi + dvolume, data = df_s2m_m6t2_2, weights = sqrt(df)) #WLS1 sqrt(DF)) 
 print(coeftest(fmodel_s2m_6_t2_2, cluster.vcov(fmodel_s2m_6_t2_2, cbind(df_s2m_m6t2_2$study_id, df_s2m_m6t2_2$studyobs)))) # Clustered Standard error
+print(coeftest(fmodel_s2m_6_t2_2, cluster.vcov(fmodel_s2m_6_t2_2, cbind(df_s2m_m6t2_2$study_id, df_s2m_m6t2_2$studyobs)), leverage = 3)) # Experimenal clustered Standard error  
 print(lmtest::bptest(fmodel_s2m_6_t2_2))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
+check_collinearity(fmodel_s2m_6_t2_2)
 
-model_s2m_6_t2_3 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking
-                      , data = df_s2m_t2, weights = 1/studyobs) #WLS2 1/studyobs
+model_s2m_6_t2_3 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                         dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                         dvola + doi + dvolume, data = df_s2m_t2, weights = 1/studyobs) #WLS2 1/studyobs
 HighLeverage <- cooks.distance(model_s2m_6_t2_3) > (4/nrow(df_s2m))
 LargeResiduals <- rstudent(model_s2m_6_t2_3) > 3
 df_s2m_m6t2_3 <- df_s2m[!HighLeverage & !LargeResiduals,]
-fmodel_s2m_6_t2_3 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                         dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                         monthly + d2007 + dinfluenced + dranking
-                       , data = df_s2m_m6t2_3, weights = 1/studyobs) #WLS2 1/studyobs
+fmodel_s2m_6_t2_3 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                          dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                          dvola + doi + dvolume, data = df_s2m_m6t2_3, weights = 1/studyobs) #WLS2 1/studyobs
 print(coeftest(fmodel_s2m_6_t2_3, cluster.vcov(fmodel_s2m_6_t2_3, cbind(df_s2m_m6t2_3$study_id, df_s2m_m6t2_3$studyobs)))) # Clustered Standard error
+print(coeftest(fmodel_s2m_6_t2_3, cluster.vcov(fmodel_s2m_6_t2_3, cbind(df_s2m_m6t2_3$study_id, df_s2m_m6t2_3$studyobs)), leverage = 3)) # Experimenal clustered Standard error 
 print(lmtest::bptest(fmodel_s2m_6_t2_3))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
+check_collinearity(fmodel_s2m_6_t2_3)
 
-model_s2m_6_t2_4 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking
-                      , data = df_s2m_t2, weights = studyquali) #WLS3 studyquali
+model_s2m_6_t2_4 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                         dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                         dvola + doi + dvolume, data = df_s2m_t2, weights = studyquali) #WLS3 studyquali
 HighLeverage <- cooks.distance(model_s2m_6_t2_4) > (4/nrow(df_s2m))
 LargeResiduals <- rstudent(model_s2m_6_t2_4) > 3
 df_s2m_m6t2_4 <- df_s2m[!HighLeverage & !LargeResiduals,]
-fmodel_s2m_6_t2_4 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                         dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                         monthly + d2007 + dinfluenced + dranking
-                       , data = df_s2m_m6t2_4, weights = studyquali) #WLS3 studyquali
+fmodel_s2m_6_t2_4 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                          dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                          dvola + doi + dvolume, data = df_s2m_m6t2_4, weights = studyquali) #WLS3 studyquali
 print(coeftest(fmodel_s2m_6_t2_4, cluster.vcov(fmodel_s2m_6_t2_4, cbind(df_s2m_m6t2_4$study_id, df_s2m_m6t2_4$studyobs)))) # Clustered Standard error
+print(coeftest(fmodel_s2m_6_t2_4, cluster.vcov(fmodel_s2m_6_t2_4, cbind(df_s2m_m6t2_4$study_id, df_s2m_m6t2_4$studyobs)), leverage = 3)) # Experimenal clustered Standard error 
 print(lmtest::bptest(fmodel_s2m_6_t2_4))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
+check_collinearity(fmodel_s2m_6_t2_4)
 
-model_s2m_6_t2_5 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                        dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                        monthly + d2007 + dinfluenced + dranking
-                      , data = df_s2m_t2, weights = 1/calc_var) #WLS4 1/variance
+model_s2m_6_t2_5 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                         dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                         dvola + doi + dvolume, data = df_s2m_t2, weights = 1/calc_var) #WLS4 1/variance
 HighLeverage <- cooks.distance(model_s2m_6_t2_5) > (4/nrow(df_s2m))
 LargeResiduals <- rstudent(model_s2m_6_t2_5) > 3
 df_s2m_m6t2_5 <- df_s2m[!HighLeverage & !LargeResiduals,]
-fmodel_s2m_6_t2_5 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                         dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                         monthly + d2007 + dinfluenced + dranking
-                       , data = df_s2m_m6t2_5, weights = 1/calc_var) #WLS4 1/variance
+fmodel_s2m_6_t2_5 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dchi2 + dtstat + ddif + dlog + dsum + dvarvec + dzvar + 
+                          dnonparagc + dmultivariategc + daicplus + dcftc + monthly + d2007 + dinfluenced + dranking + 
+                          dvola + doi + dvolume, data = df_s2m_m6t2_5, weights = 1/calc_var) #WLS4 1/variance
 print(coeftest(fmodel_s2m_6_t2_5, cluster.vcov(fmodel_s2m_6_t2_5, cbind(df_s2m_m6t2_5$study_id, df_s2m_m6t2_5$studyobs)))) # Clustered Standard error
-print(lmtest::bptest(fmodel_s2m_6_t2_4))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
+print(coeftest(fmodel_s2m_6_t2_5, cluster.vcov(fmodel_s2m_6_t2_5, cbind(df_s2m_m6t2_5$study_id, df_s2m_m6t2_5$studyobs)), leverage = 3)) # Experimenal clustered Standard error 
+print(lmtest::bptest(fmodel_s2m_6_t2_5))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
+check_collinearity(fmodel_s2m_6_t2_5)
+
 ###########
 ###Tests###
 ###########
-df_test <- df_s2m_m6t2_5
+df_test <- df_s2m_m6t_1
 distinct(df_test, study_id)
 nrow(df_test)
 
+###########################
+###Experimental approach - 290420###
+###########################
+t1_list <- list(model_s2m_6_t_1, model_s2m_6_t_2, model_s2m_6_t_3, model_s2m_6_t_4, model_s2m_6_t_5)
+t2_list  <- list(model_s2m_6_t2_1, model_s2m_6_t2_2, model_s2m_6_t2_3, model_s2m_6_t2_4, model_s2m_6_t2_5)
 
 
+for (i in t1_list){
+  print(coeftest(i, cluster.vcov(i, cbind(df_s2m_t$study_id, df_s2m_t$studyobs)), leverage = 3)) # Experimenal clustered Standard error 
+  print(lmtest::bptest(i))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
+}
+for (i in t2_list){
+  print(coeftest(i, cluster.vcov(i, cbind(df_s2m_t2$study_id, df_s2m_t2$studyobs)), leverage = 3)) # Experimenal clustered Standard error 
+  print(lmtest::bptest(i))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
+}
+
+df_test <- df_s2m_t2
+distinct(df_test, study_id)
+nrow(df_test)
+ 
 #########################
 ###Reduced MRA model 6###
 #########################
 #Subset A
-model_s2m_6_t_3_reduced <- lm(tprobit ~ dlog +  
-                        dquantilegc
-                      , data = df_s2m_t, weights = 1/studyobs) #WLS2 1/studyobs
+model_s2m_6_t_3_reduced <- lm(tprobit ~ dmetal + dlog + dsum
+                                , data = df_s2m_t, weights = 1/studyobs) #WLS2 1/studyobs
 HighLeverage <- cooks.distance(model_s2m_6_t_3_reduced) > (4/nrow(df_s2m))
 LargeResiduals <- rstudent(model_s2m_6_t_3_reduced) > 3
 df_s2m_m6t_3_reduced <- df_s2m[!HighLeverage & !LargeResiduals,]
-fmodel_s2m_6_t_3_reduced <- lm(tprobit ~ dlog +  
-                         dquantilegc
-                         , data = df_s2m_m6t_3_reduced, weights = 1/studyobs) #WLS2 1/studyobs
+fmodel_s2m_6_t_3_reduced <- lm(tprobit ~ dmetal + dlog + dsum 
+                                 , data = df_s2m_m6t_3_reduced, weights = 1/studyobs) #WLS2 1/studyobs
 print(coeftest(fmodel_s2m_6_t_3_reduced, cluster.vcov(fmodel_s2m_6_t_3_reduced, cbind(df_s2m_m6t_3_reduced$study_id, df_s2m_m6t_3_reduced$studyobs)))) # Clustered Standard error
 print(lmtest::bptest(fmodel_s2m_6_t_3_reduced))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
 
 #Subset B
-model_s2m_6_t2_3_reduced <- lm(t2probit ~ sqrt(df) + m +  
-                         dquantilegc + 
-                         d2007
-                       , data = df_s2m_t2, weights = 1/studyobs) #WLS2 1/studyobs
+model_s2m_6_t2_3_reduced <- lm(t2probit ~ m + dmetal + ddif + dlog +   
+                                 dmultivariategc    
+                                 , data = df_s2m_t2, weights = 1/studyobs) #WLS2 1/studyobs
 HighLeverage <- cooks.distance(model_s2m_6_t2_3_reduced) > (4/nrow(df_s2m))
 LargeResiduals <- rstudent(model_s2m_6_t2_3_reduced) > 3
 df_s2m_m6t2_3_reduced <- df_s2m[!HighLeverage & !LargeResiduals,]
-fmodel_s2m_6_t2_3_reduced <- lm(t2probit ~ sqrt(df) + m +   
-                          dquantilegc + 
-                          d2007
-                        , data = df_s2m_m6t2_3_reduced, weights = 1/studyobs) #WLS2 1/studyobs
+fmodel_s2m_6_t2_3_reduced <- lm(t2probit ~ m + dmetal + ddif + dlog + 
+                                  dmultivariategc    
+                                  , data = df_s2m_m6t2_3_reduced, weights = 1/studyobs) #WLS2 1/studyobs
 print(coeftest(fmodel_s2m_6_t2_3_reduced, cluster.vcov(fmodel_s2m_6_t2_3_reduced, cbind(df_s2m_m6t2_3_reduced$study_id, df_s2m_m6t2_3_reduced$studyobs)))) # Clustered Standard error
 print(lmtest::bptest(fmodel_s2m_6_t2_3_reduced))  #Breusch-Pagan test for heteroscedasticity - studentized Breusch-Pagan test
 
-##########################################
-###Predict Best practice model -MRA 6 - 270320###
-##########################################
-#df_Predict contains best practice Values for wich the model shall be predicted
-model_s2m_6_t2_3 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                         dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                         monthly + d2007 + dinfluenced + dranking
-                       , data = df_s2m_t2, weights = 1/studyobs) #WLS2 1/studyobs
-HighLeverage <- cooks.distance(model_s2m_6_t2_3) > (4/nrow(df_s2m))
-LargeResiduals <- rstudent(model_s2m_6_t2_3) > 3
-df_s2m_m6t2_3 <- df_s2m[!HighLeverage & !LargeResiduals,]
-fmodel_s2m_6_t2_3 <- lm(t2probit ~ sqrt(df) + m + commodity_name + dfstat + dtstat + ddif + dlog + dvarvec + 
-                          dzvar + dnonparagc + dquantilegc + daicplus + dbicplus + dpretest + dcftc + 
-                          monthly + d2007 + dinfluenced + dranking
-                        , data = df_s2m_m6t2_3, weights = 1/studyobs) #WLS2 1/studyobs
-print(coeftest(fmodel_s2m_6_t2_3, cluster.vcov(fmodel_s2m_6_t2_3, cbind(df_s2m_m6t2_3$study_id, df_s2m_m6t2_3$studyobs)))) # Clustered Standard error
+##############################################################################################################################################
 
+##################################################
+###Predict Best practice model - MRA 6 - 240420###
+##################################################
 
-#Full B subsample
-df_predict_1 <- data.frame(df = 850, m = 3, commodity_name = "gsoft", dfstat = 1, dtstat = 0, ddif = 1, dlog = 0, 
-                           dvarvec = 1, dzvar = 0.08077, dnonparagc = 0, dquantilegc =0,  daicplus = 0, dbicplus = 0.5, 
-                           dpretest = 0.61, dcftc = 0.54, monthly = 0, d2007 = 1, dinfluenced = 0.53, dranking = 1, 
-                           samps_calc = 0, dpvalcalc = 0)
-df_predict_2 <- data.frame(df = 850, m = 3, commodity_name = "genergy", dfstat = 1, dtstat = 0, ddif = 1, dlog = 0, 
-                           dvarvec = 1, dzvar = 0.08077, dnonparagc = 0, dquantilegc =0,  daicplus = 0, dbicplus = 0.5, 
-                           dpretest = 0.61, dcftc = 0.54, monthly = 0, d2007 = 1, dinfluenced = 0.53, dranking = 1, 
-                           samps_calc = 0, dpvalcalc = 0)
-df_predict_3 <- data.frame(df = 850, m = 3, commodity_name = "gmetal", dfstat = 1, dtstat = 0, ddif = 1, dlog = 0, 
-                           dvarvec = 1, dzvar = 0.08077, dnonparagc = 0, dquantilegc =0,  daicplus = 0, dbicplus = 0.5, 
-                           dpretest = 0.61, dcftc = 0.54, monthly = 0, d2007 = 1, dinfluenced = 0.53, dranking = 1, 
-                           samps_calc = 0, dpvalcalc = 0)
+#Full B subsample, vola
+df_predict_1 <- data.frame(df = 850, m = 3, commodity_name = "gsoft", dchi2 = 0, dtstat = 0, ddif = 1, dlog = 0, 
+                           dsum = 0, dvarvec = 1, dzvar = 0.08077, dnonparagc = 0, dmultivariategc = 0,  daicplus = 0, 
+                           dcftc = 0.54, monthly = 0, dinfluenced = 0.53, 
+                           dranking = 0, 
+                           d2007 = 0,
+                           dvola = 0, 
+                           doi = 0, 
+                           dvolume = 0)
+df_predict_2 <- data.frame(df = 850, m = 3, commodity_name = "genergy", dchi2 = 0, dtstat = 0, ddif = 1, dlog = 0, 
+                           dsum = 0, dvarvec = 1, dzvar = 0.08077, dnonparagc = 0, dmultivariategc = 0,  daicplus = 0, 
+                           dcftc = 0.54, monthly = 0, dinfluenced = 0.53, 
+                           dranking = 0, 
+                           d2007 = 0,
+                           dvola = 0, 
+                           doi = 0, 
+                           dvolume = 0)
+df_predict_3 <- data.frame(df = 850, m = 3, commodity_name = "gmetal", dchi2 = 0, dtstat = 0, ddif = 1, dlog = 0, 
+                           dsum = 0, dvarvec = 1, dzvar = 0.08077, dnonparagc = 0, dmultivariategc = 0,  daicplus = 0, 
+                           dcftc = 0.54, monthly = 0, dinfluenced = 0.53, 
+                           dranking = 0, 
+                           d2007 = 0,
+                           dvola = 0, 
+                           doi = 0, 
+                           dvolume = 0)
 
 predict_list <- list(df_predict_1, df_predict_2, df_predict_3)
 
 for (predict in predict_list){
   print(pnorm(-predict(fmodel_s2m_6_t2_3, predict)))
 }
+
